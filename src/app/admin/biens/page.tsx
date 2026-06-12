@@ -2,17 +2,15 @@
 
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Bien, TypeBien, biensDemoData } from "@/data/biens";
+import { Bien, TypeBien } from "@/data/biens";
 import { getBiens, addBien, updateBien, deleteBien } from "@/lib/firestore";
 
 function formatPrix(prix: number): string {
   return prix.toLocaleString("fr-FR") + " FCFA";
 }
 
-const useFirebase = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "votre_api_key_ici";
-
 export default function AdminBiensPage() {
-  const [biens, setBiens] = useState<Bien[]>(biensDemoData);
+  const [biens, setBiens] = useState<Bien[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editBien, setEditBien] = useState<Bien | null>(null);
@@ -38,14 +36,10 @@ export default function AdminBiensPage() {
 
   async function loadBiens() {
     try {
-      if (useFirebase) {
-        const data = await getBiens();
-        if (data.length > 0) {
-          setBiens(data);
-        }
-      }
+      const data = await getBiens();
+      setBiens(data);
     } catch (error) {
-      console.log("Mode démo (Firebase non configuré)", error);
+      console.error("Erreur chargement biens:", error);
     } finally {
       setLoading(false);
     }
@@ -112,21 +106,12 @@ export default function AdminBiensPage() {
         createdAt: editBien?.createdAt || new Date().toISOString().split("T")[0],
       };
 
-      if (useFirebase) {
-        if (editBien) {
-          await updateBien(editBien.id, bienData);
-        } else {
-          await addBien(bienData as Omit<Bien, "id">);
-        }
-        await loadBiens();
+      if (editBien) {
+        await updateBien(editBien.id, bienData);
       } else {
-        const newBien: Bien = { id: editBien?.id || Date.now().toString(), ...bienData } as Bien;
-        if (editBien) {
-          setBiens(biens.map((b) => (b.id === editBien.id ? newBien : b)));
-        } else {
-          setBiens([newBien, ...biens]);
-        }
+        await addBien(bienData as Omit<Bien, "id">);
       }
+      await loadBiens();
 
       resetForm();
     } catch (error) {
@@ -140,26 +125,19 @@ export default function AdminBiensPage() {
   async function handleDelete(id: string) {
     if (!confirm("Supprimer ce bien ?")) return;
     try {
-      if (useFirebase) {
-        await deleteBien(id);
-        await loadBiens();
-      } else {
-        setBiens(biens.filter((b) => b.id !== id));
-      }
+      await deleteBien(id);
+      await loadBiens();
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression.");
     }
   }
 
   async function handleToggleDisponible(bien: Bien) {
     const newStatut = !bien.disponible;
     try {
-      if (useFirebase) {
-        await updateBien(bien.id, { disponible: newStatut });
-        await loadBiens();
-      } else {
-        setBiens(biens.map((b) => (b.id === bien.id ? { ...b, disponible: newStatut } : b)));
-      }
+      await updateBien(bien.id, { disponible: newStatut });
+      await loadBiens();
     } catch (error) {
       console.error("Erreur:", error);
     }
@@ -185,7 +163,6 @@ export default function AdminBiensPage() {
           <h1 className="text-3xl font-bold text-foreground">Gestion des Biens</h1>
           <p className="text-foreground/60 mt-1">
             {biens.length} bien(s) au total
-            {!useFirebase && <span className="ml-2 text-orange-600 text-xs font-semibold">(Mode démo - Firebase non configuré)</span>}
           </p>
         </div>
         <button
