@@ -7,7 +7,6 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  orderBy,
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -18,8 +17,7 @@ import { Bien, TypeBien } from "@/data/biens";
 // ========================
 
 export async function getBiens(): Promise<Bien[]> {
-  const q = query(collection(db, "biens"), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
+  const snapshot = await getDocs(collection(db, "biens"));
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Bien));
 }
 
@@ -31,7 +29,7 @@ export async function getBienById(id: string): Promise<Bien | null> {
 }
 
 export async function getBiensByType(type: TypeBien): Promise<Bien[]> {
-  const q = query(collection(db, "biens"), where("type", "==", type), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "biens"), where("type", "==", type));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Bien));
 }
@@ -67,9 +65,9 @@ export interface Locataire {
 }
 
 export async function getLocataires(): Promise<Locataire[]> {
-  const q = query(collection(db, "locataires"), orderBy("nom"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Locataire));
+  const snapshot = await getDocs(collection(db, "locataires"));
+  const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Locataire));
+  return data.sort((a, b) => a.nom.localeCompare(b.nom));
 }
 
 export async function addLocataire(locataire: Omit<Locataire, "id">): Promise<string> {
@@ -107,9 +105,9 @@ export interface ContratAssurance {
 }
 
 export async function getContrats(): Promise<ContratAssurance[]> {
-  const q = query(collection(db, "assurances"), orderBy("dateFin", "desc"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ContratAssurance));
+  const snapshot = await getDocs(collection(db, "assurances"));
+  const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ContratAssurance));
+  return data.sort((a, b) => b.dateFin.localeCompare(a.dateFin));
 }
 
 export async function addContrat(contrat: Omit<ContratAssurance, "id">): Promise<string> {
