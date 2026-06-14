@@ -8,6 +8,8 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Bien, TypeBien } from "@/data/biens";
@@ -18,7 +20,7 @@ import { Bien, TypeBien } from "@/data/biens";
 
 export async function getBiens(): Promise<Bien[]> {
   const snapshot = await getDocs(collection(db, "biens"));
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Bien));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Bien));
 }
 
 export async function getBienById(id: string): Promise<Bien | null> {
@@ -31,7 +33,7 @@ export async function getBienById(id: string): Promise<Bien | null> {
 export async function getBiensByType(type: TypeBien): Promise<Bien[]> {
   const q = query(collection(db, "biens"), where("type", "==", type));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Bien));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Bien));
 }
 
 export async function addBien(bien: Omit<Bien, "id">): Promise<string> {
@@ -66,7 +68,7 @@ export interface Locataire {
 
 export async function getLocataires(): Promise<Locataire[]> {
   const snapshot = await getDocs(collection(db, "locataires"));
-  const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Locataire));
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Locataire));
   return data.sort((a, b) => a.nom.localeCompare(b.nom));
 }
 
@@ -106,7 +108,7 @@ export interface ContratAssurance {
 
 export async function getContrats(): Promise<ContratAssurance[]> {
   const snapshot = await getDocs(collection(db, "assurances"));
-  const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ContratAssurance));
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ContratAssurance));
   return data.sort((a, b) => b.dateFin.localeCompare(a.dateFin));
 }
 

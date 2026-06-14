@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAdmin } from "@/lib/admin-context";
 import {
-  getContrats,
   addContrat,
+  updateContrat,
   deleteContrat,
   ContratAssurance,
 } from "@/lib/firestore";
@@ -36,10 +37,19 @@ function getTypeLabel(type: string) {
 }
 
 export default function AdminAssurancesPage() {
-  const [contrats, setContrats] = useState<ContratAssurance[]>([]);
+  return (
+    <AdminLayout>
+      <AssurancesContent />
+    </AdminLayout>
+  );
+}
+
+function AssurancesContent() {
+  const { contrats, loading, refreshContrats } = useAdmin();
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [editContrat, setEditContrat] = useState<ContratAssurance | null>(null);
   const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   const [form, setForm] = useState({
     client: "",
     telephone: "",
@@ -50,21 +60,31 @@ export default function AdminAssurancesPage() {
     prixAchat: "",
     prixVente: "",
     dateDebut: "",
+    statut: "actif" as "actif" | "expire" | "bientot",
   });
 
-  useEffect(() => {
-    loadContrats();
-  }, []);
+  function resetForm() {
+    setForm({ client: "", telephone: "", typeVehicule: "auto", immatriculation: "", compagnie: "", duree: "1", prixAchat: "", prixVente: "", dateDebut: "", statut: "actif" });
+    setEditContrat(null);
+    setShowForm(false);
+  }
 
-  async function loadContrats() {
-    try {
-      const data = await getContrats();
-      setContrats(data);
-    } catch (error) {
-      console.error("Erreur chargement contrats:", error);
-    } finally {
-      setLoading(false);
-    }
+  function handleEdit(contrat: ContratAssurance) {
+    setForm({
+      client: contrat.client,
+      telephone: contrat.telephone,
+      typeVehicule: contrat.typeVehicule,
+      immatriculation: contrat.immatriculation,
+      compagnie: contrat.compagnie,
+      duree: contrat.duree.toString(),
+      prixAchat: contrat.prixAchat.toString(),
+      prixVente: contrat.prixVente.toString(),
+      dateDebut: contrat.dateDebut,
+      statut: contrat.statut,
+    });
+    setEditContrat(contrat);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function calculerDateFin(dateDebut: string, duree: number): string {
@@ -77,9 +97,10 @@ export default function AdminAssurancesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setSuccessMsg("");
     try {
       const duree = parseInt(form.duree);
-      const newContrat: Omit<ContratAssurance, "id"> = {
+      const data = {
         client: form.client,
         telephone: form.telephone,
         typeVehicule: form.typeVehicule,
@@ -90,29 +111,39 @@ export default function AdminAssurancesPage() {
         prixVente: parseInt(form.prixVente),
         dateDebut: form.dateDebut,
         dateFin: calculerDateFin(form.dateDebut, duree),
-        statut: "actif",
+        statut: form.statut,
       };
-      await addContrat(newContrat);
-      await loadContrats();
-      setForm({ client: "", telephone: "", typeVehicule: "auto", immatriculation: "", compagnie: "", duree: "1", prixAchat: "", prixVente: "", dateDebut: "" });
-      setShowForm(false);
-    } catch (error) {
+
+      if (editContrat) {
+        await updateContrat(editContrat.id, data);
+        setSuccessMsg("Contrat modifié avec succès !");
+      } else {
+        await addContrat(data);
+        setSuccessMsg("Contrat enregistré avec succès !");
+      }
+      await refreshContrats();
+      resetForm();
+    } catch (error: any) {
       console.error("Erreur enregistrement:", error);
-      alert("Erreur lors de l'enregistrement. Vérifiez votre connexion.");
+      if (error?.code === "permission-denied") {
+        alert("Accès refusé par Firebase. Vérifiez les règles Firestore.");
+      } else {
+        alert("Erreur lors de l'enregistrement. Vérifiez votre connexion.");
+      }
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Supprimer ce contrat ?")) {
-      try {
-        await deleteContrat(id);
-        setContrats(contrats.filter((c) => c.id !== id));
-      } catch (error) {
-        console.error("Erreur suppression:", error);
-        alert("Erreur lors de la suppression.");
-      }
+    if (!confirm("Supprimer ce contrat ?")) return;
+    try {
+      await deleteContrat(id);
+      await refreshContrats();
+      setSuccessMsg("Contrat supprimé.");
+    } catch (error: any) {
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression.");
     }
   }
 
@@ -121,19 +152,17 @@ export default function AdminAssurancesPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-foreground/60">Chargement des contrats...</p>
-          </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground/60">Chargement des contrats...</p>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestion des Assurances</h1>
@@ -142,7 +171,7 @@ export default function AdminAssurancesPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 px-5 py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,10 +181,27 @@ export default function AdminAssurancesPage() {
         </button>
       </div>
 
+      {/* Message de succès */}
+      {successMsg && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-green-800 font-medium text-sm">{successMsg}</p>
+          <button onClick={() => setSuccessMsg("")} className="ml-auto text-green-600 hover:text-green-800">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Formulaire */}
       {showForm && (
         <div className="bg-white rounded-2xl p-6 border border-border shadow-sm mb-8">
-          <h2 className="text-xl font-bold text-foreground mb-4">Vendre une assurance</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">
+            {editContrat ? `Modifier : ${editContrat.client}` : "Vendre une assurance"}
+          </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Nom du client</label>
@@ -268,6 +314,20 @@ export default function AdminAssurancesPage() {
                 className="w-full px-4 py-2 border border-border rounded-lg bg-muted text-foreground/70"
               />
             </div>
+            {editContrat && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Statut</label>
+                <select
+                  value={form.statut}
+                  onChange={(e) => setForm({ ...form, statut: e.target.value as "actif" | "expire" | "bientot" })}
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
+                >
+                  <option value="actif">Actif</option>
+                  <option value="bientot">Expire bientôt</option>
+                  <option value="expire">Expiré</option>
+                </select>
+              </div>
+            )}
             {form.prixAchat && form.prixVente && (
               <div className="md:col-span-2 bg-green-50 p-4 rounded-xl">
                 <p className="text-green-700 font-semibold">
@@ -281,11 +341,11 @@ export default function AdminAssurancesPage() {
                 disabled={saving}
                 className="px-6 py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50"
               >
-                {saving ? "Enregistrement..." : "Enregistrer la vente"}
+                {saving ? "Enregistrement..." : editContrat ? "Enregistrer les modifications" : "Enregistrer la vente"}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="px-6 py-3 border border-border text-foreground/70 font-medium rounded-xl hover:bg-muted transition-all"
               >
                 Annuler
@@ -339,7 +399,16 @@ export default function AdminAssurancesPage() {
                     <td className="px-6 py-4 text-foreground/70 text-sm">{contrat.dateFin}</td>
                     <td className="px-6 py-4">{getStatutBadge(contrat.statut)}</td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleEdit(contrat)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Modifier"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         <a
                           href={`https://wa.me/221${contrat.telephone.replace(/\s/g, "")}?text=${encodeURIComponent(`Bonjour ${contrat.client}, votre assurance ${contrat.typeVehicule} (${contrat.immatriculation}) expire le ${contrat.dateFin}. Passez à l'agence YOMBAL pour le renouvellement. Merci.`)}`}
                           target="_blank"
@@ -369,6 +438,6 @@ export default function AdminAssurancesPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }

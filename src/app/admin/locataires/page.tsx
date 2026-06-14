@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAdmin } from "@/lib/admin-context";
 import {
-  getLocataires,
   addLocataire,
   updateLocataire,
   deleteLocataire,
@@ -28,67 +28,93 @@ function getStatutBadge(statut: string) {
 }
 
 export default function AdminLocatairesPage() {
-  const [locataires, setLocataires] = useState<Locataire[]>([]);
-  const [loading, setLoading] = useState(true);
+  return (
+    <AdminLayout>
+      <LocatairesContent />
+    </AdminLayout>
+  );
+}
+
+function LocatairesContent() {
+  const { locataires, biens, loading, refreshLocataires } = useAdmin();
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editLocataire, setEditLocataire] = useState<Locataire | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
   const [form, setForm] = useState({
     nom: "",
     telephone: "",
     bien: "",
     loyer: "",
     dateEntree: "",
+    statut: "a_jour" as "a_jour" | "en_retard" | "impaye",
   });
 
-  useEffect(() => {
-    loadLocataires();
-  }, []);
+  function resetForm() {
+    setForm({ nom: "", telephone: "", bien: "", loyer: "", dateEntree: "", statut: "a_jour" });
+    setEditLocataire(null);
+    setShowForm(false);
+  }
 
-  async function loadLocataires() {
-    try {
-      const data = await getLocataires();
-      setLocataires(data);
-    } catch (error) {
-      console.error("Erreur chargement locataires:", error);
-    } finally {
-      setLoading(false);
-    }
+  function handleEdit(loc: Locataire) {
+    setForm({
+      nom: loc.nom,
+      telephone: loc.telephone,
+      bien: loc.bien,
+      loyer: loc.loyer.toString(),
+      dateEntree: loc.dateEntree,
+      statut: loc.statut,
+    });
+    setEditLocataire(loc);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setSuccessMsg("");
     try {
-      const newLocataire: Omit<Locataire, "id"> = {
+      const data = {
         nom: form.nom,
         telephone: form.telephone,
         bien: form.bien,
         loyer: parseInt(form.loyer),
         dateEntree: form.dateEntree,
-        statut: "a_jour",
-        dernierPaiement: new Date().toISOString().split("T")[0],
+        statut: form.statut,
+        dernierPaiement: editLocataire?.dernierPaiement || new Date().toISOString().split("T")[0],
       };
-      await addLocataire(newLocataire);
-      await loadLocataires();
-      setForm({ nom: "", telephone: "", bien: "", loyer: "", dateEntree: "" });
-      setShowForm(false);
-    } catch (error) {
+
+      if (editLocataire) {
+        await updateLocataire(editLocataire.id, data);
+        setSuccessMsg("Locataire modifié avec succès !");
+      } else {
+        await addLocataire(data);
+        setSuccessMsg("Locataire ajouté avec succès !");
+      }
+      await refreshLocataires();
+      resetForm();
+    } catch (error: any) {
       console.error("Erreur enregistrement:", error);
-      alert("Erreur lors de l'enregistrement. Vérifiez votre connexion.");
+      if (error?.code === "permission-denied") {
+        alert("Accès refusé par Firebase. Vérifiez les règles Firestore.");
+      } else {
+        alert("Erreur lors de l'enregistrement. Vérifiez votre connexion.");
+      }
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Supprimer ce locataire ?")) {
-      try {
-        await deleteLocataire(id);
-        setLocataires(locataires.filter((l) => l.id !== id));
-      } catch (error) {
-        console.error("Erreur suppression:", error);
-        alert("Erreur lors de la suppression.");
-      }
+    if (!confirm("Supprimer ce locataire ?")) return;
+    try {
+      await deleteLocataire(id);
+      await refreshLocataires();
+      setSuccessMsg("Locataire supprimé.");
+    } catch (error: any) {
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression.");
     }
   }
 
@@ -98,7 +124,8 @@ export default function AdminLocatairesPage() {
         statut: "a_jour",
         dernierPaiement: new Date().toISOString().split("T")[0],
       });
-      await loadLocataires();
+      await refreshLocataires();
+      setSuccessMsg("Paiement enregistré !");
     } catch (error) {
       console.error("Erreur mise à jour:", error);
     }
@@ -109,19 +136,17 @@ export default function AdminLocatairesPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-foreground/60">Chargement des locataires...</p>
-          </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground/60">Chargement des locataires...</p>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestion des Locataires</h1>
@@ -130,7 +155,7 @@ export default function AdminLocatairesPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 px-5 py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,10 +165,27 @@ export default function AdminLocatairesPage() {
         </button>
       </div>
 
+      {/* Message de succès */}
+      {successMsg && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-green-800 font-medium text-sm">{successMsg}</p>
+          <button onClick={() => setSuccessMsg("")} className="ml-auto text-green-600 hover:text-green-800">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Formulaire */}
       {showForm && (
         <div className="bg-white rounded-2xl p-6 border border-border shadow-sm mb-8">
-          <h2 className="text-xl font-bold text-foreground mb-4">Nouveau locataire</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">
+            {editLocataire ? `Modifier : ${editLocataire.nom}` : "Nouveau locataire"}
+          </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Nom complet</label>
@@ -169,14 +211,30 @@ export default function AdminLocatairesPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Bien occupé</label>
-              <input
-                type="text"
-                required
-                value={form.bien}
-                onChange={(e) => setForm({ ...form, bien: e.target.value })}
-                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
-                placeholder="Ex: Apt F3 - Keur Issa"
-              />
+              {biens.length > 0 ? (
+                <select
+                  required
+                  value={form.bien}
+                  onChange={(e) => setForm({ ...form, bien: e.target.value })}
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
+                >
+                  <option value="">-- Choisir un bien --</option>
+                  {biens.map((b) => (
+                    <option key={b.id} value={`${b.titre} - ${b.quartier}`}>
+                      {b.titre} - {b.quartier}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={form.bien}
+                  onChange={(e) => setForm({ ...form, bien: e.target.value })}
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
+                  placeholder="Ex: Apt F3 - Keur Issa"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Loyer (FCFA/mois)</label>
@@ -199,17 +257,31 @@ export default function AdminLocatairesPage() {
                 className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
               />
             </div>
+            {editLocataire && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Statut paiement</label>
+                <select
+                  value={form.statut}
+                  onChange={(e) => setForm({ ...form, statut: e.target.value as "a_jour" | "en_retard" | "impaye" })}
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50"
+                >
+                  <option value="a_jour">À jour</option>
+                  <option value="en_retard">En retard</option>
+                  <option value="impaye">Impayé</option>
+                </select>
+              </div>
+            )}
             <div className="md:col-span-2 flex gap-3 mt-2">
               <button
                 type="submit"
                 disabled={saving}
                 className="px-6 py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50"
               >
-                {saving ? "Enregistrement..." : "Ajouter"}
+                {saving ? "Enregistrement..." : editLocataire ? "Enregistrer les modifications" : "Ajouter"}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="px-6 py-3 border border-border text-foreground/70 font-medium rounded-xl hover:bg-muted transition-all"
               >
                 Annuler
@@ -219,7 +291,7 @@ export default function AdminLocatairesPage() {
         </div>
       )}
 
-      {/* Liste des locataires */}
+      {/* Liste */}
       {locataires.length === 0 ? (
         <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <p className="text-foreground/60 text-lg">Aucun locataire enregistré.</p>
@@ -251,7 +323,7 @@ export default function AdminLocatairesPage() {
                     <td className="px-6 py-4 text-foreground/70">{locataire.dernierPaiement}</td>
                     <td className="px-6 py-4">{getStatutBadge(locataire.statut)}</td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         {locataire.statut !== "a_jour" && (
                           <button
                             onClick={() => handleMarkPaid(locataire.id)}
@@ -263,6 +335,15 @@ export default function AdminLocatairesPage() {
                             </svg>
                           </button>
                         )}
+                        <button
+                          onClick={() => handleEdit(locataire)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Modifier"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         <a
                           href={`https://wa.me/221${locataire.telephone.replace(/\s/g, "")}?text=${encodeURIComponent(`Bonjour ${locataire.nom}, ceci est un rappel pour le paiement de votre loyer de ${formatPrix(locataire.loyer)}. Merci. - Agence YOMBAL`)}`}
                           target="_blank"
@@ -292,6 +373,6 @@ export default function AdminLocatairesPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }

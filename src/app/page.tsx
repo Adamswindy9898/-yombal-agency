@@ -2,12 +2,10 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import BienCard from "@/components/BienCard";
-import { biensDemoData } from "@/data/biens";
+import BiensRecents from "@/components/BiensRecents";
 import { typesVehicules } from "@/data/assurances";
 
 export default function Home() {
-  const biensRecents = biensDemoData.slice(0, 3);
 
   return (
     <>
@@ -149,11 +147,7 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {biensRecents.map((bien) => (
-                <BienCard key={bien.id} bien={bien} />
-              ))}
-            </div>
+            <BiensRecents />
 
             <div className="text-center mt-8 sm:hidden">
               <Link

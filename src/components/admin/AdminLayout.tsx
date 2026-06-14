@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { AdminProvider, useAdmin } from "@/lib/admin-context";
 
 const navItems = [
   { href: "/admin", label: "Tableau de bord", icon: "dashboard" },
@@ -42,77 +43,56 @@ function NavIcon({ icon }: { icon: string }) {
   }
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function ErrorBanner() {
+  const { error, refreshAll } = useAdmin();
+  if (!error) return null;
 
-  useEffect(() => {
-    const session = sessionStorage.getItem("yombal_admin");
-    if (session === "true") setIsLoggedIn(true);
-  }, []);
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (password === "yombal2026") {
-      sessionStorage.setItem("yombal_admin", "true");
-      setIsLoggedIn(true);
-      setError("");
-    } else {
-      setError("Mot de passe incorrect");
+  return (
+    <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+      <div className="flex items-start gap-3">
+        <svg className="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <div className="flex-1">
+          <p className="text-red-800 font-semibold text-sm">Problème de connexion Firebase</p>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
+          <div className="mt-3 space-y-2">
+            <button
+              onClick={refreshAll}
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 font-medium text-sm rounded-lg transition-all"
+            >
+              Réessayer
+            </button>
+            <details className="text-xs text-red-600">
+              <summary className="cursor-pointer hover:text-red-800">Comment corriger ?</summary>
+              <ol className="mt-2 ml-4 list-decimal space-y-1">
+                <li>Allez sur <strong>console.firebase.google.com</strong></li>
+                <li>Sélectionnez le projet <strong>yombal-964c8</strong></li>
+                <li>Allez dans <strong>Firestore Database → Rules</strong></li>
+                <li>Remplacez les règles par :</li>
+              </ol>
+              <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-x-auto">
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
-
-  function handleLogout() {
-    sessionStorage.removeItem("yombal_admin");
-    setIsLoggedIn(false);
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 gradient-gold rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-primary-dark font-bold text-2xl">Y</span>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">Admin YOMBAL</h1>
-            <p className="text-foreground/60 mt-2">Connectez-vous pour gérer l&apos;agence</p>
-          </div>
-          <form onSubmit={handleLogin}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Mot de passe
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold"
-                placeholder="Entrez le mot de passe"
-              />
-            </div>
-            {error && (
-              <p className="text-red-500 text-sm mb-4">{error}</p>
-            )}
-            <button
-              type="submit"
-              className="w-full py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all"
-            >
-              Se connecter
-            </button>
-          </form>
-          <div className="mt-6 text-center">
-            <Link href="/" className="text-sm text-foreground/50 hover:text-gold">
-              ← Retour au site
-            </Link>
+}`}
+              </pre>
+              <p className="mt-2">Puis cliquez <strong>Publish</strong> et rechargez cette page.</p>
+            </details>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-muted flex">
@@ -147,7 +127,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="p-4 border-t border-white/10">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              sessionStorage.removeItem("yombal_admin");
+              window.location.href = "/admin";
+            }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:text-red-400 hover:bg-red-400/10 transition-all w-full"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,7 +192,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </nav>
             <div className="mt-4 pt-4 border-t border-white/10">
               <button
-                onClick={handleLogout}
+                onClick={() => {
+                  sessionStorage.removeItem("yombal_admin");
+                  window.location.href = "/admin";
+                }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:text-red-400 w-full"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,8 +210,91 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+        <ErrorBanner />
         <div className="p-6 md:p-8">{children}</div>
       </main>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const session = sessionStorage.getItem("yombal_admin");
+    if (session === "true") setIsLoggedIn(true);
+    setChecking(false);
+  }, []);
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (password === "yombal2026") {
+      sessionStorage.setItem("yombal_admin", "true");
+      setIsLoggedIn(true);
+      setError("");
+    } else {
+      setError("Mot de passe incorrect");
+    }
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 gradient-gold rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-primary-dark font-bold text-2xl">Y</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Admin YOMBAL</h1>
+            <p className="text-foreground/60 mt-2">Connectez-vous pour gérer l&apos;agence</p>
+          </div>
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold"
+                placeholder="Entrez le mot de passe"
+              />
+            </div>
+            {error && (
+              <p className="text-red-500 text-sm mb-4">{error}</p>
+            )}
+            <button
+              type="submit"
+              className="w-full py-3 gradient-gold text-primary-dark font-bold rounded-xl hover:opacity-90 transition-all"
+            >
+              Se connecter
+            </button>
+          </form>
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-sm text-foreground/50 hover:text-gold">
+              ← Retour au site
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AdminProvider>
+      <AdminShell>{children}</AdminShell>
+    </AdminProvider>
   );
 }

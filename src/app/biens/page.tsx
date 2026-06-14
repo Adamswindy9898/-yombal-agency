@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import BienCard from "@/components/BienCard";
-import { biensDemoData, TypeBien } from "@/data/biens";
+import { Bien, TypeBien } from "@/data/biens";
+import { getBiens } from "@/lib/firestore";
 
 const types: { value: TypeBien | "tous"; label: string }[] = [
   { value: "tous", label: "Tous" },
@@ -18,11 +19,20 @@ const types: { value: TypeBien | "tous"; label: string }[] = [
 
 export default function BiensPage() {
   const [filtre, setFiltre] = useState<TypeBien | "tous">("tous");
+  const [biens, setBiens] = useState<Bien[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getBiens().then((data) => {
+      setBiens(data.filter((b) => b.disponible));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
   const biensFiltres =
     filtre === "tous"
-      ? biensDemoData
-      : biensDemoData.filter((b) => b.type === filtre);
+      ? biens
+      : biens.filter((b) => b.type === filtre);
 
   return (
     <>
@@ -34,7 +44,7 @@ export default function BiensPage() {
               Nos Biens Immobiliers
             </h1>
             <p className="text-white/70 text-lg max-w-2xl mx-auto">
-              Trouvez le bien idéal à Thiès : location ou achat
+              Trouvez le bien ideal a Thies : location ou achat
             </p>
           </div>
         </section>
@@ -58,30 +68,40 @@ export default function BiensPage() {
               ))}
             </div>
 
-            {/* Résultats */}
-            <p className="text-foreground/60 mb-6">
-              {biensFiltres.length} bien{biensFiltres.length > 1 ? "s" : ""}{" "}
-              trouvé{biensFiltres.length > 1 ? "s" : ""}
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {biensFiltres.map((bien) => (
-                <BienCard key={bien.id} bien={bien} />
-              ))}
-            </div>
-
-            {biensFiltres.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-foreground/50 text-lg">
-                  Aucun bien disponible dans cette catégorie pour le moment.
-                </p>
-                <a
-                  href="https://wa.me/221776316751"
-                  className="inline-block mt-4 text-gold font-semibold hover:underline"
-                >
-                  Contactez-nous pour vos recherches personnalisées
-                </a>
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-foreground/60">Chargement des biens...</p>
+                </div>
               </div>
+            ) : (
+              <>
+                <p className="text-foreground/60 mb-6">
+                  {biensFiltres.length} bien{biensFiltres.length > 1 ? "s" : ""}{" "}
+                  trouve{biensFiltres.length > 1 ? "s" : ""}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {biensFiltres.map((bien) => (
+                    <BienCard key={bien.id} bien={bien} />
+                  ))}
+                </div>
+
+                {biensFiltres.length === 0 && (
+                  <div className="text-center py-20">
+                    <p className="text-foreground/50 text-lg">
+                      Aucun bien disponible dans cette categorie pour le moment.
+                    </p>
+                    <a
+                      href="https://wa.me/221776316751"
+                      className="inline-block mt-4 text-gold font-semibold hover:underline"
+                    >
+                      Contactez-nous pour vos recherches personnalisees
+                    </a>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
