@@ -5,6 +5,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import BiensRecents from "@/components/BiensRecents";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import AnnoncesBanner from "@/components/AnnoncesBanner";
 import Testimonials from "@/components/Testimonials";
 import { typesVehicules } from "@/data/assurances";
 
@@ -13,6 +14,7 @@ export default function Home() {
   return (
     <>
       <Header />
+      <AnnoncesBanner />
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative gradient-primary py-20 md:py-32 overflow-hidden">

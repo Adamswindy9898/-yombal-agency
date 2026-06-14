@@ -88,6 +88,49 @@ export async function deleteLocataire(id: string): Promise<void> {
 }
 
 // ========================
+// ANNONCES
+// ========================
+
+export interface Annonce {
+  id: string;
+  titre: string;
+  message: string;
+  type: "info" | "promo" | "urgent" | "nouveau";
+  lien?: string;
+  lienTexte?: string;
+  actif: boolean;
+  createdAt: string;
+}
+
+export async function getAnnonces(): Promise<Annonce[]> {
+  const snapshot = await getDocs(collection(db, "annonces"));
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Annonce));
+  return data.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getAnnoncesActives(): Promise<Annonce[]> {
+  const q = query(collection(db, "annonces"), where("actif", "==", true));
+  const snapshot = await getDocs(q);
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Annonce));
+  return data.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function addAnnonce(annonce: Omit<Annonce, "id">): Promise<string> {
+  const docRef = await addDoc(collection(db, "annonces"), annonce);
+  return docRef.id;
+}
+
+export async function updateAnnonce(id: string, data: Partial<Annonce>): Promise<void> {
+  const docRef = doc(db, "annonces", id);
+  await updateDoc(docRef, data);
+}
+
+export async function deleteAnnonce(id: string): Promise<void> {
+  const docRef = doc(db, "annonces", id);
+  await deleteDoc(docRef);
+}
+
+// ========================
 // PROPRIETES (maisons gérées pour des propriétaires)
 // ========================
 
