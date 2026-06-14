@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Bien } from "@/data/biens";
+import { useState, useEffect } from "react";
 
 function formatPrix(prix: number): string {
   return prix.toLocaleString("fr-FR") + " FCFA";
@@ -27,7 +30,46 @@ function getTypeColor(type: string): string {
   return colors[type] || "bg-gray-100 text-gray-700";
 }
 
+function getFavorites(): string[] {
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem("yombal-favorites");
+  return stored ? JSON.parse(stored) : [];
+}
+
+function toggleFavorite(id: string): boolean {
+  const favs = getFavorites();
+  const index = favs.indexOf(id);
+  if (index > -1) {
+    favs.splice(index, 1);
+  } else {
+    favs.push(id);
+  }
+  localStorage.setItem("yombal-favorites", JSON.stringify(favs));
+  return index === -1;
+}
+
 export default function BienCard({ bien }: { bien: Bien }) {
+  const [isFav, setIsFav] = useState(false);
+
+  useEffect(() => {
+    setIsFav(getFavorites().includes(bien.id));
+  }, [bien.id]);
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsFav(toggleFavorite(bien.id));
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/biens/${bien.id}`;
+    const text = `${bien.titre} - ${formatPrix(bien.prix)}${bien.prixParMois ? "/mois" : ""} à ${bien.quartier}, ${bien.ville}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   return (
     <Link href={`/biens/${bien.id}`}>
       <div className="card-hover bg-white rounded-2xl overflow-hidden border border-border shadow-sm">
@@ -53,13 +95,34 @@ export default function BienCard({ bien }: { bien: Bien }) {
               {getTypeLabel(bien.type)}
             </span>
           </div>
-          {bien.disponible && (
-            <div className="absolute top-3 right-3">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                Disponible
-              </span>
-            </div>
-          )}
+          <div className="absolute top-3 right-3 flex gap-2">
+            <button
+              onClick={handleFavorite}
+              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+            >
+              <svg
+                className={`w-4 h-4 ${isFav ? "text-red-500 fill-red-500" : "text-gray-600"}`}
+                fill={isFav ? "currentColor" : "none"}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={handleShare}
+              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+            >
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="p-5">

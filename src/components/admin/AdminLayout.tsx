@@ -9,6 +9,7 @@ const navItems = [
   { href: "/admin", label: "Tableau de bord", icon: "dashboard" },
   { href: "/admin/biens", label: "Biens", icon: "building" },
   { href: "/admin/locataires", label: "Locataires", icon: "users" },
+  { href: "/admin/recouvrements", label: "Recouvrements", icon: "receipt" },
   { href: "/admin/assurances", label: "Assurances", icon: "shield" },
 ];
 
@@ -30,6 +31,12 @@ function NavIcon({ icon }: { icon: string }) {
       return (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      );
+    case "receipt":
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
         </svg>
       );
     case "shield":

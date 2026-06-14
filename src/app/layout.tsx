@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import RegisterSW from "./components/RegisterSW";
+import SplashScreen from "@/components/SplashScreen";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://yombal-agency.vercel.app"),
   title: "YOMBAL - Agence Immobilière & Assurance | Thiès",
   description:
     "Agence YOMBAL à Thiès, Keur Issa. Immobilier : appartements, chambres, studios, magasins, terrains. Assurances auto, cyclomoteurs, taxis.",
@@ -28,6 +30,30 @@ export const metadata: Metadata = {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-512x512.png",
   },
+  openGraph: {
+    title: "YOMBAL - Agence Immobilière & Assurance | Thiès",
+    description:
+      "Location appartements, chambres, studios, terrains et assurance auto à Thiès. Contactez-nous sur WhatsApp.",
+    url: "https://yombal-agency.vercel.app",
+    siteName: "YOMBAL",
+    locale: "fr_SN",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "YOMBAL - Agence Immobilière & Assurance à Thiès",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YOMBAL - Agence Immobilière & Assurance | Thiès",
+    description:
+      "Location appartements, chambres, studios, terrains et assurance auto à Thiès.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
@@ -38,6 +64,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        <SplashScreen />
         <RegisterSW />
         {children}
       </body>

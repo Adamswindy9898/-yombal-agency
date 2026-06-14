@@ -2,6 +2,8 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import ImageGallery from "@/components/ImageGallery";
+import ShareButton from "@/components/ShareButton";
 import { biensDemoData } from "@/data/biens";
 
 function formatPrix(prix: number): string {
@@ -70,24 +72,22 @@ export default async function BienDetailPage({
         <section className="py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Image / Placeholder */}
+              {/* Image / Gallery */}
               <div className="lg:col-span-2">
-                <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl h-80 flex items-center justify-center mb-6">
-                  <div className="text-center">
-                    <div className="text-6xl mb-3">
-                      {bien.type === "appartement" && "🏢"}
-                      {bien.type === "chambre" && "🛏️"}
-                      {bien.type === "studio" && "🏠"}
-                      {bien.type === "magasin" && "🏪"}
-                      {bien.type === "terrain" && "🏗️"}
-                    </div>
-                    <span className="text-primary/50">Photos à venir</span>
-                  </div>
+                <div className="mb-6">
+                  <ImageGallery images={bien.images} alt={bien.titre} type={bien.type} />
                 </div>
 
-                <h1 className="text-3xl font-bold text-foreground mb-4">
-                  {bien.titre}
-                </h1>
+                <div className="flex items-center justify-between mb-4">
+                  <h1 className="text-3xl font-bold text-foreground">
+                    {bien.titre}
+                  </h1>
+                  <ShareButton
+                    title={bien.titre}
+                    text={`${bien.titre} - ${formatPrix(bien.prix)}${bien.prixParMois ? "/mois" : ""} à ${bien.quartier}, ${bien.ville}`}
+                    url={`/biens/${bien.id}`}
+                  />
+                </div>
 
                 <div className="flex items-center gap-2 text-foreground/60 mb-6">
                   <svg

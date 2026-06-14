@@ -3,6 +3,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import BiensRecents from "@/components/BiensRecents";
+import AnimateOnScroll from "@/components/AnimateOnScroll";
+import AnimatedCounter from "@/components/AnimatedCounter";
+import Testimonials from "@/components/Testimonials";
 import { typesVehicules } from "@/data/assurances";
 
 export default function Home() {
@@ -50,6 +53,7 @@ export default function Home() {
         {/* Services */}
         <section className="py-16 md:py-24 bg-muted">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <AnimateOnScroll>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Nos Services
@@ -59,8 +63,10 @@ export default function Home() {
                 d&apos;assurance
               </p>
             </div>
+            </AnimateOnScroll>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100}>
               <div className="card-hover bg-white p-8 rounded-2xl shadow-sm border border-border text-center">
                 <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-5">
                   <svg
@@ -85,7 +91,9 @@ export default function Home() {
                   magasins et terrains à Thiès
                 </p>
               </div>
+              </AnimateOnScroll>
 
+              <AnimateOnScroll delay={250}>
               <div className="card-hover bg-white p-8 rounded-2xl shadow-sm border border-border text-center">
                 <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-5">
                   <svg
@@ -110,6 +118,7 @@ export default function Home() {
                   prix compétitifs
                 </p>
               </div>
+              </AnimateOnScroll>
             </div>
           </div>
         </section>
@@ -160,6 +169,38 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Compteurs */}
+        <section className="py-12 gradient-primary">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              <div>
+                <p className="text-3xl md:text-4xl font-bold text-gold">
+                  <AnimatedCounter end={25} suffix="+" />
+                </p>
+                <p className="text-white/70 mt-1">Biens gérés</p>
+              </div>
+              <div>
+                <p className="text-3xl md:text-4xl font-bold text-gold">
+                  <AnimatedCounter end={50} suffix="+" />
+                </p>
+                <p className="text-white/70 mt-1">Clients satisfaits</p>
+              </div>
+              <div>
+                <p className="text-3xl md:text-4xl font-bold text-gold">
+                  <AnimatedCounter end={3} suffix=" ans" />
+                </p>
+                <p className="text-white/70 mt-1">D&apos;expérience</p>
+              </div>
+              <div>
+                <p className="text-3xl md:text-4xl font-bold text-gold">
+                  <AnimatedCounter end={100} suffix="%" />
+                </p>
+                <p className="text-white/70 mt-1">De confiance</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Assurances */}
         <section className="py-16 md:py-24 bg-muted">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -199,6 +240,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Témoignages */}
+        <Testimonials />
 
         {/* Contact / CTA */}
         <section className="py-16 md:py-24 gradient-primary relative overflow-hidden">

@@ -21,6 +21,8 @@ export default function BiensPage() {
   const [filtre, setFiltre] = useState<TypeBien | "tous">("tous");
   const [biens, setBiens] = useState<Bien[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [prixMax, setPrixMax] = useState<number | null>(null);
 
   useEffect(() => {
     getBiens().then((data) => {
@@ -29,10 +31,19 @@ export default function BiensPage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const biensFiltres =
-    filtre === "tous"
-      ? biens
-      : biens.filter((b) => b.type === filtre);
+  const biensFiltres = biens.filter((b) => {
+    if (filtre !== "tous" && b.type !== filtre) return false;
+    if (prixMax && b.prix > prixMax) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        b.titre.toLowerCase().includes(q) ||
+        b.quartier.toLowerCase().includes(q) ||
+        b.ville.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <>
@@ -51,7 +62,36 @@ export default function BiensPage() {
 
         <section className="py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            {/* Filtres */}
+            {/* Recherche */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, quartier..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                />
+              </div>
+              <select
+                value={prixMax || ""}
+                onChange={(e) => setPrixMax(e.target.value ? Number(e.target.value) : null)}
+                className="px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Budget max</option>
+                <option value="50000">50 000 FCFA</option>
+                <option value="100000">100 000 FCFA</option>
+                <option value="150000">150 000 FCFA</option>
+                <option value="250000">250 000 FCFA</option>
+                <option value="500000">500 000 FCFA</option>
+                <option value="10000000">10 000 000 FCFA</option>
+              </select>
+            </div>
+
+            {/* Filtres type */}
             <div className="flex flex-wrap gap-3 mb-10">
               {types.map((type) => (
                 <button

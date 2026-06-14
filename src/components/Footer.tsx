@@ -67,6 +67,14 @@ export default function Footer() {
               </li>
               <li>
                 <Link
+                  href="/a-propos"
+                  className="hover:text-gold transition-colors"
+                >
+                  À propos
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/contact"
                   className="hover:text-gold transition-colors"
                 >
@@ -114,8 +122,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-8 pt-8 text-center text-white/40 text-sm">
+        <div className="border-t border-white/10 mt-8 pt-8 flex items-center justify-between text-white/40 text-sm">
           <p>&copy; 2026 Agence YOMBAL. Tous droits réservés.</p>
+          <Link href="/admin" className="hover:text-gold transition-colors">
+            Se connecter
+          </Link>
         </div>
       </div>
     </footer>

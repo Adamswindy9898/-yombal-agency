@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdmin } from "@/lib/admin-context";
+import QRCodeCard from "@/components/admin/QRCodeCard";
 
 export default function AdminPage() {
   return (
@@ -57,6 +58,11 @@ function DashboardContent() {
   const totalLoyers = locataires.reduce((sum, l) => sum + l.loyer, 0);
   const locatairesEnRetard = locataires.filter((l) => l.statut !== "a_jour");
   const contratsActifs = contrats.filter((c) => c.statut === "actif");
+  const tauxOccupation = biens.length > 0 ? Math.round((biens.filter(b => !b.disponible).length / biens.length) * 100) : 0;
+
+  const today = new Date().toISOString().split("T")[0];
+  const in7days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const contratsExpirentBientot = contrats.filter((c) => c.dateFin >= today && c.dateFin <= in7days);
 
   const stats = [
     { label: "Biens Disponibles", value: biens.filter(b => b.disponible).length.toString(), color: "bg-blue-50 text-blue-700", icon: "building" },
@@ -96,10 +102,60 @@ function DashboardContent() {
         ))}
       </div>
 
+      {/* Taux d'occupation */}
+      <div className="bg-white rounded-2xl p-6 border border-border shadow-sm mb-8">
+        <h2 className="text-xl font-bold text-foreground mb-4">Taux d&apos;occupation</h2>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div
+                className="bg-gradient-to-r from-blue-600 to-blue-400 h-4 rounded-full transition-all"
+                style={{ width: `${tauxOccupation}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-2xl font-bold text-foreground">{tauxOccupation}%</span>
+        </div>
+        <p className="text-foreground/50 text-sm mt-2">
+          {biens.filter(b => !b.disponible).length} occupé(s) sur {biens.length} bien(s)
+        </p>
+      </div>
+
+      {/* Assurances expirant bientôt */}
+      {contratsExpirentBientot.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 border border-orange-200 shadow-sm mb-8">
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
+            Assurances expirent dans 7 jours
+          </h2>
+          <div className="space-y-3">
+            {contratsExpirentBientot.map((c) => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-xl">
+                <div>
+                  <p className="font-medium text-foreground">{c.client}</p>
+                  <p className="text-sm text-foreground/60">{c.typeVehicule} • {c.immatriculation}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-orange-700">Expire le {c.dateFin}</p>
+                  <a
+                    href={`https://wa.me/221${c.telephone.replace(/\s/g, "")}?text=${encodeURIComponent(`Bonjour ${c.client}, votre assurance ${c.typeVehicule} (${c.immatriculation}) expire le ${c.dateFin}. Passez à l'agence YOMBAL pour le renouvellement. Merci.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-green-600 font-medium hover:underline"
+                  >
+                    Rappel WhatsApp
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Actions rapides */}
       <div className="bg-white rounded-2xl p-6 border border-border shadow-sm mb-8">
         <h2 className="text-xl font-bold text-foreground mb-4">Actions rapides</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
             href="/admin/biens"
             className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all"
@@ -116,7 +172,16 @@ function DashboardContent() {
             <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
-            <span className="font-medium text-green-700">Gérer les locataires</span>
+            <span className="font-medium text-green-700">Locataires</span>
+          </a>
+          <a
+            href="/admin/recouvrements"
+            className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-all"
+          >
+            <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+            </svg>
+            <span className="font-medium text-amber-700">Recouvrements</span>
           </a>
           <a
             href="/admin/assurances"
@@ -125,7 +190,7 @@ function DashboardContent() {
             <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span className="font-medium text-purple-700">Gérer les assurances</span>
+            <span className="font-medium text-purple-700">Assurances</span>
           </a>
         </div>
       </div>
@@ -185,6 +250,9 @@ function DashboardContent() {
           </div>
         )}
       </div>
+
+      {/* QR Code */}
+      <QRCodeCard />
 
       {/* Biens occupés */}
       {biens.filter(b => !b.disponible).length > 0 && (

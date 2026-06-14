@@ -88,6 +88,51 @@ export async function deleteLocataire(id: string): Promise<void> {
 }
 
 // ========================
+// PROPRIETES (maisons gérées pour des propriétaires)
+// ========================
+
+export interface Unite {
+  numero: string;
+  type: "chambre" | "studio" | "mini-studio" | "appartement" | "magasin";
+  loyer: number;
+  locataire?: string;
+  telephone?: string;
+  statut: "occupe" | "vacant";
+  paiements?: Record<string, boolean>; // "2026-06": true = payé
+}
+
+export interface Propriete {
+  id: string;
+  nom: string; // "Maison Keur Issa", "Immeuble Mbour 3"
+  adresse: string;
+  proprietaire: string; // nom du propriétaire
+  telephoneProprietaire: string;
+  unites: Unite[];
+  createdAt: string;
+}
+
+export async function getProprietes(): Promise<Propriete[]> {
+  const snapshot = await getDocs(collection(db, "proprietes"));
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Propriete));
+  return data.sort((a, b) => a.nom.localeCompare(b.nom));
+}
+
+export async function addPropriete(propriete: Omit<Propriete, "id">): Promise<string> {
+  const docRef = await addDoc(collection(db, "proprietes"), propriete);
+  return docRef.id;
+}
+
+export async function updatePropriete(id: string, data: Partial<Propriete>): Promise<void> {
+  const docRef = doc(db, "proprietes", id);
+  await updateDoc(docRef, data);
+}
+
+export async function deletePropriete(id: string): Promise<void> {
+  const docRef = doc(db, "proprietes", id);
+  await deleteDoc(docRef);
+}
+
+// ========================
 // ASSURANCES
 // ========================
 

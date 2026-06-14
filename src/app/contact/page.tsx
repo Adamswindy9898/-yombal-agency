@@ -184,34 +184,17 @@ export default function ContactPage() {
               {/* Carte / Info visuelle */}
               <div>
                 <div className="bg-muted rounded-2xl p-8 h-full">
-                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl h-64 flex items-center justify-center mb-6">
-                    <div className="text-center">
-                      <svg
-                        className="w-16 h-16 text-primary/30 mx-auto mb-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      <p className="text-primary/50 font-medium">
-                        Keur Issa, Thiès
-                      </p>
-                      <p className="text-primary/40 text-sm mt-1">
-                        Carte Google Maps à venir
-                      </p>
-                    </div>
+                  <div className="rounded-xl h-64 overflow-hidden mb-6">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3858.5!2d-16.926!3d14.791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDQ3JzI3LjYiTiAxNsKwNTUnMzMuNiJX!5e0!3m2!1sfr!2ssn!4v1"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Localisation Agence YOMBAL - Keur Issa, Thiès"
+                    />
                   </div>
 
                   <div className="bg-white rounded-xl p-6 border border-border">
