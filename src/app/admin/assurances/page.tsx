@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdmin } from "@/lib/admin-context";
 import {
@@ -46,6 +46,10 @@ export default function AdminAssurancesPage() {
 
 function AssurancesContent() {
   const { contrats, loading, refreshContrats } = useAdmin();
+
+  useEffect(() => {
+    refreshContrats();
+  }, [refreshContrats]);
   const [showForm, setShowForm] = useState(false);
   const [editContrat, setEditContrat] = useState<ContratAssurance | null>(null);
   const [saving, setSaving] = useState(false);

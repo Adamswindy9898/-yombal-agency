@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdmin } from "@/lib/admin-context";
 
@@ -47,7 +48,11 @@ function StatIcon({ icon }: { icon: string }) {
 }
 
 function DashboardContent() {
-  const { biens, locataires, contrats, loading } = useAdmin();
+  const { biens, locataires, contrats, loading, refreshAll } = useAdmin();
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   const totalLoyers = locataires.reduce((sum, l) => sum + l.loyer, 0);
   const locatairesEnRetard = locataires.filter((l) => l.statut !== "a_jour");

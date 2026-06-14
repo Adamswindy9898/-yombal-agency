@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdmin } from "@/lib/admin-context";
 import {
@@ -36,7 +36,12 @@ export default function AdminLocatairesPage() {
 }
 
 function LocatairesContent() {
-  const { locataires, biens, loading, refreshLocataires } = useAdmin();
+  const { locataires, biens, loading, refreshLocataires, refreshBiens } = useAdmin();
+
+  useEffect(() => {
+    refreshLocataires();
+    refreshBiens();
+  }, [refreshLocataires, refreshBiens]);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editLocataire, setEditLocataire] = useState<Locataire | null>(null);

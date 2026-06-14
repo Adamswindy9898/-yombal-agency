@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdmin } from "@/lib/admin-context";
 import { Bien, TypeBien } from "@/data/biens";
@@ -20,6 +20,10 @@ export default function AdminBiensPage() {
 
 function BiensContent() {
   const { biens, loading, refreshBiens } = useAdmin();
+
+  useEffect(() => {
+    refreshBiens();
+  }, [refreshBiens]);
   const [showForm, setShowForm] = useState(false);
   const [editBien, setEditBien] = useState<Bien | null>(null);
   const [saving, setSaving] = useState(false);
