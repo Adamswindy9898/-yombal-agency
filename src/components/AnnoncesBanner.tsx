@@ -1,89 +1,164 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { Annonce, getAnnoncesActives } from "@/lib/firestore";
 
-const typeStyles: Record<string, { bg: string; icon: string; border: string }> = {
-  info: { bg: "bg-blue-50", icon: "text-blue-600", border: "border-blue-200" },
-  promo: { bg: "bg-green-50", icon: "text-green-600", border: "border-green-200" },
-  urgent: { bg: "bg-red-50", icon: "text-red-600", border: "border-red-200" },
-  nouveau: { bg: "bg-amber-50", icon: "text-amber-600", border: "border-amber-200" },
+const typeColors: Record<string, string> = {
+  info: "from-blue-600/80 to-blue-900/80",
+  promo: "from-green-600/80 to-green-900/80",
+  urgent: "from-red-600/80 to-red-900/80",
+  nouveau: "from-amber-600/80 to-amber-900/80",
 };
 
-const typeIcons: Record<string, string> = {
-  info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-  promo: "M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7",
-  urgent: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
-  nouveau: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z",
+const typeBadge: Record<string, { label: string; bg: string }> = {
+  info: { label: "Info", bg: "bg-blue-500" },
+  promo: { label: "Promo", bg: "bg-green-500" },
+  urgent: { label: "Urgent", bg: "bg-red-500" },
+  nouveau: { label: "Nouveau", bg: "bg-amber-500" },
 };
 
 export default function AnnoncesBanner() {
   const [annonces, setAnnonces] = useState<Annonce[]>([]);
   const [current, setCurrent] = useState(0);
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     getAnnoncesActives().then(setAnnonces).catch(() => {});
   }, []);
 
+  const goTo = useCallback((index: number) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrent(index);
+      setIsTransitioning(false);
+    }, 300);
+  }, []);
+
+  const next = useCallback(() => {
+    if (annonces.length <= 1) return;
+    goTo((current + 1) % annonces.length);
+  }, [current, annonces.length, goTo]);
+
+  const prev = useCallback(() => {
+    if (annonces.length <= 1) return;
+    goTo((current - 1 + annonces.length) % annonces.length);
+  }, [current, annonces.length, goTo]);
+
   useEffect(() => {
     if (annonces.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrent((c) => (c + 1) % annonces.length);
-    }, 5000);
+    const interval = setInterval(next, 6000);
     return () => clearInterval(interval);
-  }, [annonces.length]);
+  }, [annonces.length, next]);
 
-  const visibleAnnonces = annonces.filter((a) => !dismissed.includes(a.id));
-  if (visibleAnnonces.length === 0) return null;
+  if (annonces.length === 0) return null;
 
-  const annonce = visibleAnnonces[current % visibleAnnonces.length];
+  const annonce = annonces[current];
   if (!annonce) return null;
 
-  const style = typeStyles[annonce.type] || typeStyles.info;
-  const iconPath = typeIcons[annonce.type] || typeIcons.info;
+  const overlay = typeColors[annonce.type] || typeColors.info;
+  const badge = typeBadge[annonce.type] || typeBadge.info;
+  const hasMedia = annonce.mediaUrl && annonce.mediaType;
 
   return (
-    <div className={`${style.bg} border-b ${style.border} relative overflow-hidden`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-        <div className="flex items-center justify-center gap-3">
-          <svg className={`w-5 h-5 ${style.icon} flex-shrink-0`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
-          </svg>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-foreground">{annonce.titre}</span>
-            <span className="text-foreground/70">{annonce.message}</span>
-            {annonce.lien && (
-              <a
-                href={annonce.lien}
-                className={`font-semibold ${style.icon} hover:underline ml-1`}
-              >
-                {annonce.lienTexte || "En savoir plus →"}
-              </a>
-            )}
-          </div>
+    <div className="relative w-full overflow-hidden bg-gray-900" style={{ height: hasMedia ? "400px" : "200px" }}>
+      {/* Background media */}
+      {hasMedia && annonce.mediaType === "image" && (
+        <img
+          src={annonce.mediaUrl}
+          alt={annonce.titre}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+        />
+      )}
+      {hasMedia && annonce.mediaType === "video" && (
+        <video
+          key={annonce.id}
+          src={annonce.mediaUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+        />
+      )}
+
+      {/* Gradient overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-r ${overlay} ${!hasMedia ? "!from-gray-800 !to-gray-900" : ""}`} />
+
+      {/* Content */}
+      <div className={`relative h-full flex items-center justify-center transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          {/* Badge */}
+          <span className={`inline-block px-3 py-1 ${badge.bg} text-white text-xs font-bold uppercase rounded-full mb-3 tracking-wider`}>
+            {badge.label}
+          </span>
+
+          {/* Title */}
+          <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 drop-shadow-lg">
+            {annonce.titre}
+          </h2>
+
+          {/* Message */}
+          <p className="text-white/90 text-base md:text-lg max-w-2xl mx-auto mb-5 drop-shadow">
+            {annonce.message}
+          </p>
+
+          {/* CTA Link */}
+          {annonce.lien && (
+            <Link
+              href={annonce.lien}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gold hover:bg-gold-light text-primary-dark font-bold rounded-full transition-all shadow-lg hover:shadow-xl"
+            >
+              {annonce.lienTexte || "En savoir plus"}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation arrows */}
+      {annonces.length > 1 && (
+        <>
           <button
-            onClick={() => setDismissed([...dismissed, annonce.id])}
-            className="ml-auto text-foreground/40 hover:text-foreground/70 flex-shrink-0"
+            onClick={prev}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-all"
+            aria-label="Précédent"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
+          <button
+            onClick={next}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-all"
+            aria-label="Suivant"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {/* Dots indicator */}
+      {annonces.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          {annonces.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`transition-all rounded-full ${
+                i === current
+                  ? "w-8 h-2.5 bg-gold"
+                  : "w-2.5 h-2.5 bg-white/50 hover:bg-white/70"
+              }`}
+              aria-label={`Annonce ${i + 1}`}
+            />
+          ))}
         </div>
-        {visibleAnnonces.length > 1 && (
-          <div className="flex justify-center gap-1 mt-2">
-            {visibleAnnonces.map((_, i) => (
-              <div
-                key={i}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  i === current % visibleAnnonces.length ? "bg-foreground/50 w-4" : "bg-foreground/20"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -96,6 +96,8 @@ export interface Annonce {
   titre: string;
   message: string;
   type: "info" | "promo" | "urgent" | "nouveau";
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
   lien?: string;
   lienTexte?: string;
   actif: boolean;
